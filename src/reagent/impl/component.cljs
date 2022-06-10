@@ -45,7 +45,7 @@
            (into [])))))
 
 (defn ^boolean reagent-class? [c]
-  (and (fn? c)
+  (and (fn? c);; 先判断是不是函数，之后再看原型中是否有reagentRender
        (some? (some-> c (.-prototype) (.-reagentRender)))))
 
 (defn ^boolean react-class? [c]
@@ -349,6 +349,8 @@
 
 (defn fn-to-class [compiler f]
   (assert-callable f)
+  ;; 是React Class 并且不是Reagent Class，报告warning
+  ;; 不是React Class 会直接短路
   (warn-unless (not (and (react-class? f)
                          (not (reagent-class? f))))
                "Using native React classes directly in Hiccup forms "
