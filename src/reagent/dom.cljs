@@ -25,7 +25,7 @@
 
 (defn- re-render-component [comp container]
   (render-comp comp container nil))
-
+;;入口函数，应用第一个调用的函数
 (defn render
   "Render a Reagent component into the DOM. The first argument may be
   either a vector (using Reagent's Hiccup syntax), or a React element.
@@ -37,13 +37,13 @@
   ([comp container]
    (render comp container tmpl/default-compiler))
   ([comp container callback-or-compiler]
-   (ratom/flush!)
+   (ratom/flush!);;强刷队列
    (let [[compiler callback] (if (fn? callback-or-compiler)
                                [tmpl/default-compiler callback-or-compiler]
                                ;; TODO: Callback option doesn't make sense now that
                                ;; val is compiler object, not map.
                                [callback-or-compiler (:callback callback-or-compiler)])
-         f (fn []
+         f (fn [];; 此处需要让comp执行，执行的结果返回为HiccupTag列表
              (p/as-element compiler (if (fn? comp) (comp) comp)))]
      (render-comp f container callback))))
 

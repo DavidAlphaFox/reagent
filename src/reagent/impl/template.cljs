@@ -276,8 +276,8 @@
   (let [tag (nth v 0 nil)]
     (assert (valid-tag? tag) (util/hiccup-err v (comp/comp-name) "Invalid Hiccup form"))
     (case tag
-      :> (native-element (->HiccupTag (nth v 1 nil) nil nil nil) v 2 compiler)
-      :r> (raw-element (nth v 1 nil) v compiler)
+      :> (native-element (->HiccupTag (nth v 1 nil) nil nil nil) v 2 compiler);; React的component标签
+      :r> (raw-element (nth v 1 nil) v compiler) ;; 原生的浏览器标签
       :f> (function-element (nth v 1 nil) v 2 compiler)
       :<> (fragment-element v compiler)
       (cond

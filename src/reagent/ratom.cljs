@@ -501,16 +501,16 @@
 
   IHash
   (-hash [this] (goog/getUid this)))
-
+;; 刷新
 (defn flush! []
   (loop []
     (let [q rea-queue]
       (when-not (nil? q)
         (set! rea-queue nil)
         (dotimes [i (alength q)]
-          (let [^Reaction r (aget q i)]
+          (let [^Reaction r (aget q i)];;强制类型说明，r是Reaction 
             (._queued-run r)))
-        (recur)))))
+        (recur)))));;当rea-queue不为空的时候，会回调loop
 
 (set! batch/ratom-flush flush!)
 
