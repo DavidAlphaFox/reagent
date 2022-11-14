@@ -5,9 +5,9 @@
 
   :dependencies []
 
-  :plugins [[lein-cljsbuild "1.1.7"]
+  :plugins [[lein-cljsbuild "1.1.8"]
             [lein-doo "0.1.11"]
-            [lein-codox "0.10.7"]
+            [lein-codox "0.10.8"]
             [lein-figwheel "0.5.20"]]
 
   :source-paths ["src"]
@@ -17,16 +17,16 @@
           :source-paths ["src"]
           :doc-paths []}
 
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.10.3"]
-                                  [org.clojure/clojurescript "1.10.896"]
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.11.1"]
+                                  [org.clojure/clojurescript "1.11.60"]
                                   [figwheel "0.5.20"]
                                   [figwheel-sidecar "0.5.20"]
                                   [doo "0.1.11"]
                                   [cljsjs/prop-types "15.7.2-0"]
 
-                                  [cljsjs/react "17.0.2-0"]
-                                  [cljsjs/react-dom "17.0.2-0"]
-                                  [cljsjs/react-dom-server "17.0.2-0"]]
+                                  [cljsjs/react "18.2.0-1"]
+                                  [cljsjs/react-dom "18.2.0-1"]
+                                  [cljsjs/react-dom-server "18.2.0-1"]]
                    :source-paths ["demo" "test" "examples/todomvc/src" "examples/simple/src" "examples/geometry/src"]
                    :resource-paths ["site" "target/cljsbuild/client" "target/cljsbuild/client-npm"]}}
 
@@ -138,7 +138,8 @@
                 :output-to "target/cljsbuild/node-test-npm/main.js"
                 :npm-deps true
                 :aot-cache true
-                :checked-arrays :warn}}
+                :checked-arrays :warn
+                :closure-defines {"reagenttest.runtests.DOM_TESTS" false}}}
 
     ;; With :advanched source-paths doesn't matter that much as
     ;; Cljs compiler will only read :main file.

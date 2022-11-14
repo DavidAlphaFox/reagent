@@ -1,31 +1,44 @@
 (ns reagent.dom
-  (:require [react-dom :as react-dom]
+  (:require ["react" :as react]
+            ["react-dom" :as react-dom]
             [reagent.impl.util :as util]
             [reagent.impl.template :as tmpl]
-            [reagent.impl.input :as input]
             [reagent.impl.batching :as batch]
             [reagent.impl.protocols :as p]
-            [reagent.ratom :as ratom]))
+            [reagent.ratom :as ratom]
+            [goog.object :as gobj]))
 
 (defonce ^:private roots (atom {}))
 
 (defn- unmount-comp [container]
-  (swap! roots dissoc container)
-  (react-dom/unmountComponentAtNode container))
+  (let [root (get @roots container)]
+    (swap! roots dissoc container)
+    (.unmount root)))
+
+(defn- reagent-root [^js js-props]
+  (let [comp (gobj/get js-props "comp")
+        callback (gobj/get js-props "callback")]
+    (react/useEffect (fn []
+                       (binding [util/*always-update* false]
+                         (batch/flush-after-render)
+                         (when (some? callback)
+                           (callback))
+                         js/undefined)))
+    (binding [util/*always-update* true]
+      (comp))))
 
 (defn- render-comp [comp container callback]
-  (binding [util/*always-update* true]
-    (react-dom/render (comp) container
-      (fn []
-        (binding [util/*always-update* false]
-          (swap! roots assoc container comp)
-          (batch/flush-after-render)
-          (if (some? callback)
-            (callback)))))))
+  (let [root (reify Object
+               (unmount [_this]
+                 (react-dom/unmountComponentAtNode container))
+               (render [_this]
+                 (react-dom/render
+                   (react/createElement reagent-root #js {:callback callback
+                                                          :comp comp})
+                   container)))]
+    (swap! roots assoc container root)
+    (.render root)))
 
-(defn- re-render-component [comp container]
-  (render-comp comp container nil))
-;;入口函数，应用第一个调用的函数
 (defn render
   "Render a Reagent component into the DOM. The first argument may be
   either a vector (using Reagent's Hiccup syntax), or a React element.
@@ -35,15 +48,19 @@
 
   Returns the mounted component instance."
   ([comp container]
-   (render comp container tmpl/default-compiler))
+   (render comp container tmpl/*current-default-compiler*))
   ([comp container callback-or-compiler]
-   (ratom/flush!);;强刷队列
-   (let [[compiler callback] (if (fn? callback-or-compiler)
-                               [tmpl/default-compiler callback-or-compiler]
-                               ;; TODO: Callback option doesn't make sense now that
-                               ;; val is compiler object, not map.
-                               [callback-or-compiler (:callback callback-or-compiler)])
-         f (fn [];; 此处需要让comp执行，执行的结果返回为HiccupTag列表
+   (ratom/flush!)
+   (let [[compiler callback] (cond
+                               (map? callback-or-compiler)
+                               [(:compiler callback-or-compiler) (:callback callback-or-compiler)]
+
+                               (fn? callback-or-compiler)
+                               [tmpl/*current-default-compiler* callback-or-compiler]
+
+                               :else
+                               [callback-or-compiler nil])
+         f (fn []
              (p/as-element compiler (if (fn? comp) (comp) comp)))]
      (render-comp f container callback))))
 
@@ -54,6 +71,7 @@
 
 (defn dom-node
   "Returns the root DOM node of a mounted component."
+  {:deprecated "1.2.0"}
   [this]
   (react-dom/findDOMNode this))
 
@@ -67,8 +85,9 @@
   functions are passed by value, and not by reference, in
   ClojureScript). To get around this you'll have to introduce a layer
   of indirection, for example by using `(render [#'foo])` instead."
+  {:deprecated "1.2.0"}
   []
   (ratom/flush!)
-  (doseq [[container comp] @roots]
-    (re-render-component comp container))
+  (doseq [[container root] @roots]
+    (.render root))
   (batch/flush-after-render))
