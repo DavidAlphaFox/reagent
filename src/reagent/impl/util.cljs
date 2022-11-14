@@ -118,7 +118,7 @@
 
 (defn make-partial-fn [f args]
   (->PartialFn (apply partial f args) f args))
-
+;;是keyword或者符号
 (defn ^boolean named? [x]
   (or (keyword? x)
       (symbol? x)))
@@ -200,7 +200,7 @@
           (recur (assoc m (keyword k) (gobj/get o k))
                  (inc i)))
         m))))
-
+;;当不是object的时候，才会判定为value
 (defn ^boolean js-val? [x]
   (not (identical? "object" (goog/typeOf x))))
 

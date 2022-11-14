@@ -29,7 +29,7 @@
 
 (defn ^boolean valid-tag? [x]
   (or (hiccup-tag? x)
-      (ifn? x)
+      (ifn? x);;是函数
       (instance? NativeWrapper x)))
 
 ;;; Props conversion
