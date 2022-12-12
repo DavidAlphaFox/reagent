@@ -328,8 +328,8 @@
 
 (defn with-let-values [key]
   (if-some [c *ratom-context*]
-    (cached-reaction array c key nil with-let-destroy)
-    (array)))
+    (cached-reaction (fn [] #js []) c key nil with-let-destroy)
+    #js []))
 
 
 ;;;; reaction
@@ -502,17 +502,17 @@
 
   IHash
   (-hash [this] (goog/getUid this)))
-
+;; 刷新
 (defn flush! []
   (loop []
     (let [q rea-queue]
       (when-not (nil? q) ;; 队列空的时候，将不会去执行
         (set! rea-queue nil) ;; 清空reaction的队列
         (dotimes [i (alength q)]
-          (let [^Reaction r (aget q i)]
+          (let [^Reaction r (aget q i)];;强制类型说明，r是Reaction 
             (._queued-run r)))
-        (recur)))))
-;;将ratom的刷新函数设置为flush!
+        (recur)))));;当rea-queue不为空的时候，会回调loop
+
 (set! batch/ratom-flush flush!)
 
 (defn make-reaction [f & {:keys [auto-run on-set on-dispose]}]

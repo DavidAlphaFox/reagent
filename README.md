@@ -6,7 +6,7 @@
 [![cljdoc badge](https://cljdoc.org/badge/reagent/reagent)](https://cljdoc.org/d/reagent/reagent/CURRENT)
 [![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C0620C0C8)
 
-A simple [ClojureScript](http://github.com/clojure/clojurescript) interface to [React](http://facebook.github.io/react/).
+A simple [ClojureScript](http://github.com/clojure/clojurescript) interface to [React](https://reactjs.org/).
 
 Reagent provides a way to write efficient React components using (almost) nothing but plain ClojureScript functions.
 
@@ -16,7 +16,6 @@ Reagent provides a way to write efficient React components using (almost) nothin
   * **Documentation, next release: [API docs](http://reagent-project.github.io/docs/master/), [Tutorials and FAQ](https://github.com/reagent-project/reagent/tree/master/doc)**
   * **Community discussion and support channels**
     * **[#reagent](https://clojurians.slack.com/messages/reagent/)** channel in [Clojure Slack](http://clojurians.net/)
-    * **[Reagent Project Mailing List](https://groups.google.com/forum/#!forum/reagent-project)**
   * **Commercial video material**
     * [Learn Reagent Free](https://www.jacekschae.com/learn-reagent-free/tycit?coupon=REAGENT), [Learn Reagent Pro](https://www.jacekschae.com/learn-reagent-pro/tycit?coupon=REAGENT) (Affiliate link, $30 discount)
     * [Learn Re-frame Free](https://www.jacekschae.com/learn-re-frame-free/tycit?coupon=REAGENT), [Learn Re-frame Pro](https://www.jacekschae.com/learn-re-frame-pro/tycit?coupon=REAGENT) (Affiliate link, $30 discount)

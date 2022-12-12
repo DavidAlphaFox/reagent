@@ -37,8 +37,8 @@
     (let [^js/React.Component c (aget a i)]
       (when (true? (.-cljsIsDirty c))
         (.forceUpdate c)))))
-
-
+;;使用ratom/flush!进行flush，此处为占位符
+;;ratom会更新此全局变量
 ;; Set from ratom.cljs
 (defonce ratom-flush (fn []))
 
@@ -50,7 +50,7 @@
   (assert-some f "Enqueued function")
   (.push fs f)
   (.schedule queue))
-
+;; 渲染队列
 (deftype RenderQueue [^:mutable ^boolean scheduled?]
   Object
   (schedule [this]
@@ -60,22 +60,22 @@
 
   (queue-render [this c]
     (when (nil? (.-componentQueue this))
-      (set! (.-componentQueue this) (array)))
+      (set! (.-componentQueue this) #js []))
     (enqueue this (.-componentQueue this) c))
 
   (add-before-flush [this f]
     (when (nil? (.-beforeFlush this))
-      (set! (.-beforeFlush this) (array)))
+      (set! (.-beforeFlush this) #js []))
     (enqueue this (.-beforeFlush this) f))
 
   (add-after-render [this f]
     (when (nil? (.-afterRender this))
-      (set! (.-afterRender this) (array)))
+      (set! (.-afterRender this) #js []))
     (enqueue this (.-afterRender this) f))
 
   (run-queues [this]
-    (set! scheduled? false) ;;停止调度
-    (.flush-queues this)) ;;刷新队列
+    (set! scheduled? false);;更新调度状态为false
+    (.flush-queues this));;强制刷新队列
 
   (flush-before-flush [this]
     (when-some [fs (.-beforeFlush this)]

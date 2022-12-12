@@ -3,7 +3,6 @@
             [clojure.string :as string]
             [reagent.impl.util :as util :refer [named?]]
             [reagent.impl.component :as comp]
-            [reagent.impl.batching :as batch]
             [reagent.impl.input :as input]
             [reagent.impl.protocols :as p]
             [reagent.ratom :as ratom]
@@ -29,7 +28,7 @@
 
 (defn ^boolean valid-tag? [x]
   (or (hiccup-tag? x)
-      (ifn? x)
+      (ifn? x);;是函数
       (instance? NativeWrapper x)))
 
 ;;; Props conversion
@@ -199,6 +198,7 @@
       (gobj/set tag-name-cache x v)
       v)))
 
+;; This is used for html elements (:h1, :input) and also React component with :>/adapt-react-class
 (defn native-element [parsed argv first ^p/Compiler compiler]
   (let [component (.-tag parsed)
         props (nth argv first nil)
@@ -228,6 +228,9 @@
 (defn raw-element [comp argv compiler]
   (let [props (nth argv 2 nil)
         jsprops (or props #js {})]
+    ;; If we have key attached to vector metadata, copy that to the
+    ;; jsprops.
+    ;; Often the key is already on the jsprops.
     (when-some [key (-> (meta argv) util/get-react-key)]
       (set! (.-key jsprops) key))
     (p/make-element compiler argv comp jsprops 3)))
@@ -276,8 +279,8 @@
   (let [tag (nth v 0 nil)]
     (assert (valid-tag? tag) (util/hiccup-err v (comp/comp-name) "Invalid Hiccup form"))
     (case tag
-      :> (native-element (->HiccupTag (nth v 1 nil) nil nil nil) v 2 compiler)
-      :r> (raw-element (nth v 1 nil) v compiler)
+      :> (native-element (->HiccupTag (nth v 1 nil) nil nil nil) v 2 compiler);; React的component标签
+      :r> (raw-element (nth v 1 nil) v compiler) ;; 原生的浏览器标签
       :f> (function-element (nth v 1 nil) v 2 compiler)
       :<> (fragment-element v compiler)
       (cond
@@ -316,8 +319,8 @@
       (make-element [this argv component jsprops first-child]
         (make-element this argv component jsprops first-child)))))
 
-(def default-compiler* (create-compiler {}))
-(def ^:dynamic default-compiler default-compiler*)
+(def class-compiler (create-compiler {}))
+(def ^:dynamic *current-default-compiler* class-compiler)
 
 (defn set-default-compiler! [compiler]
-  (set! default-compiler compiler))
+  (set! *current-default-compiler* compiler))
