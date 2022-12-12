@@ -13,7 +13,7 @@
 (def ^{:doc "Regular expression that parses a CSS-style id and class
              from a tag name."}
   re-tag #"([^\s\.#]+)(?:#([^\s\.#]+))?(?:\.([^\s#]+))?")
-
+  ;; :h1#el-id.css-id1.css-id2
 (deftype NativeWrapper [tag id className])
 
 (defn adapt-react-class
@@ -99,23 +99,23 @@
   "Takes the id and class from tag keyword, and adds them to the
   other props. Parsed tag is JS object with :id and :class properties."
   [props id-class]
-  (let [id (.-id id-class)
-        class (.-className id-class)]
+  (let [id (.-id id-class) ;;获取Tag的ID
+        class (.-className id-class)];;获取Tag的class
     (cond-> props
       ;; Only use ID from tag keyword if no :id in props already
       (and (some? id)
            (nil? (:id props)))
-      (assoc :id id)
+      (assoc :id id) ;;设置ID
 
       ;; Merge classes
       class
       ;; Note: someone might use React-style :className property,
       ;; this is the only place where that needs special case. Using
       ;; :class and :className together is not supported.
-      (assoc :class (util/class-names class (or (:class props) (:className props)))))))
+      (assoc :class (util/class-names class (or (:class props) (:className props))))))) ;;合并class
 
 (defn convert-props [props ^clj id-class]
-  (let [class (:class props)
+  (let [class (:class props) ;; props中是否有:class属性
         props (-> props
                   (cond-> class (assoc :class (util/class-names class)))
                   (set-id-class id-class))]
@@ -124,7 +124,7 @@
       (convert-prop-value props))))
 
 ;;; Conversion from Hiccup forms
-
+;;; 创建React的element
 (defn make-element [this argv component jsprops first-child]
   (case (- (count argv) first-child)
     ;; Optimize cases of zero or one child
@@ -153,7 +153,7 @@
                  ;; Custom element names must contain hyphen
                  ;; https://www.w3.org/TR/custom-elements/#custom-elements-core-concepts
                  (not= -1 (.indexOf tag "-")))))
-
+;;将Clojurescript的函数，映射成对应的React元素
 (defn reag-element [tag v compiler]
   (let [c (comp/as-class tag compiler)
         jsprops #js {}]
@@ -201,11 +201,11 @@
 ;; This is used for html elements (:h1, :input) and also React component with :>/adapt-react-class
 (defn native-element [parsed argv first ^p/Compiler compiler]
   (let [component (.-tag parsed)
-        props (nth argv first nil)
-        hasprops (or (nil? props) (map? props))
+        props (nth argv first nil) ;;得到component的props
+        hasprops (or (nil? props) (map? props));;不为nil也不是map的时候，说明第一个元素就是子组件
         jsprops (or (convert-props (if hasprops props) parsed)
                     #js {})
-        first-child (+ first (if hasprops 1 0))]
+        first-child (+ first (if hasprops 1 0))];;子元素所在位置，如果有props,第二个元素才是子组件
     (if (input/input-component? component)
       (let [;; Also read :key from props map, because
             ;; input wrapper will not place the key in useful place.

@@ -280,7 +280,7 @@
 (def built-in-static-method-names
   [:childContextTypes :contextTypes :contextType
    :getDerivedStateFromProps :getDerivedStateFromError])
-
+;;将clojurescript的函数，包装成React.Compoent
 (defn create-class
   "Creates JS class based on provided Clojure map.
 

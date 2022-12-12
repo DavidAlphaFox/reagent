@@ -51,7 +51,7 @@
   Inside '_update-watching' along with adding the ratoms in 'r.watching' of reaction,
   the reaction is also added to the list of watches on each ratoms f derefs."
   [f ^clj r]
-  (set! (.-captured r) nil) ;;清空观察者数据
+  (set! (.-captured r) nil) ;;清空之前观察者数据
   (when (dev?)
     (set! (.-ratomGeneration r) (set! generation (inc generation))))
   (let [res (in-context r f) ;;绑定reaction并执行相对应的函数
@@ -133,8 +133,8 @@
 
   IDeref
   (-deref [this]
-    (notify-deref-watcher! this)
-    state)
+    (notify-deref-watcher! this);;将自己加入captured列表
+    state);;然后返回相应的状态
 
   IReset
   (-reset! [a new-value]
