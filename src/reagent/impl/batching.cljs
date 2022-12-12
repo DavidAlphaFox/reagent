@@ -44,7 +44,7 @@
 
 (defn run-funs [fs]
   (dotimes [i (alength fs)]
-    ((aget fs i))))
+    ((aget fs i)))) ;;按照顺序执行数组内的函数
 
 (defn enqueue [^clj queue fs f]
   (assert-some f "Enqueued function")
@@ -55,7 +55,7 @@
   Object
   (schedule [this]
     (when-not scheduled?
-      (set! scheduled? true)
+      (set! scheduled? true) ;;设置为已经调度，防止重新进入
       (next-tick #(.run-queues this))))
 
   (queue-render [this c]
@@ -74,8 +74,8 @@
     (enqueue this (.-afterRender this) f))
 
   (run-queues [this]
-    (set! scheduled? false)
-    (.flush-queues this))
+    (set! scheduled? false) ;;停止调度
+    (.flush-queues this)) ;;刷新队列
 
   (flush-before-flush [this]
     (when-some [fs (.-beforeFlush this)]
@@ -88,15 +88,15 @@
       (run-queue fs)))
 
   (flush-after-render [this]
-    (when-some [fs (.-afterRender this)]
+    (when-some [fs (.-afterRender this)] ;;如果渲染后清除函数不为空才去执行
       (set! (.-afterRender this) nil)
       (run-funs fs)))
 
   (flush-queues [this]
-    (.flush-before-flush this)
-    (ratom-flush)
-    (.flush-render this)
-    (.flush-after-render this)))
+    (.flush-before-flush this) ;;在清空队列前的动作
+    (ratom-flush) ;;清空ratom
+    (.flush-render this) ;;对渲染队列进行清空
+    (.flush-after-render this)));; 结束渲染的收尾工作
 
 (defonce render-queue (->RenderQueue false))
 
@@ -119,7 +119,7 @@
 
 (defn do-after-render [f]
   (.add-after-render render-queue f))
-
+;;渲染队列尚未进行调度，对渲染队列进行调度
 (defn schedule []
   (when (false? (.-scheduled? render-queue))
     (.schedule render-queue)))

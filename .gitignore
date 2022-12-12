@@ -16,3 +16,6 @@ node_modules
 junit
 .shadow-cljs
 coverage/
+.clj-kondo
+.lsp
+.cpcache

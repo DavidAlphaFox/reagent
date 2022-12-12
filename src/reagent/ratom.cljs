@@ -25,7 +25,7 @@
 
 (defn- ^number arr-len [x]
   (if (nil? x) 0 (alength x)))
-
+;; 判断两个数组是否相等
 (defn- ^boolean arr-eq [x y]
   (let [len (arr-len x)]
     (and (== len (arr-len y))
@@ -40,7 +40,7 @@
 
   See function notify-deref-watcher! to know how *ratom-context* is updated"
   [obj f]
-  (binding [*ratom-context* obj]
+  (binding [*ratom-context* obj] ;;绑定全局的ratom,执行函数
     (f)))
 
 (defn- deref-capture
@@ -51,17 +51,17 @@
   Inside '_update-watching' along with adding the ratoms in 'r.watching' of reaction,
   the reaction is also added to the list of watches on each ratoms f derefs."
   [f ^clj r]
-  (set! (.-captured r) nil)
+  (set! (.-captured r) nil) ;;清空观察者数据
   (when (dev?)
     (set! (.-ratomGeneration r) (set! generation (inc generation))))
-  (let [res (in-context r f)
-        c (.-captured r)]
-    (set! (.-dirty? r) false)
+  (let [res (in-context r f) ;;绑定reaction并执行相对应的函数
+        c (.-captured r)] ;;得到新的观察这数据
+    (set! (.-dirty? r) false) ;;设置为非脏
     ;; Optimize common case where derefs occur in same order
-    (when-not (arr-eq c (.-watching r))
-      (._update-watching r c))
-    res))
-
+    (when-not (arr-eq c (.-watching r));;新的观察者和老的观察者不同了
+      (._update-watching r c));;更新数据
+    res));;返回执行结果
+;;将所有的atom的deref操作（@操作）放到reaction中的captured域
 (defn- notify-deref-watcher!
   "Add `derefed` to the `captured` field of `*ratom-context*`.
 
@@ -79,7 +79,7 @@
   new)
 
 (defn- add-w [^clj this key f]
-  (let [w (.-watches this)]
+  (let [w (.-watches this)] ;;得到RAtom或者RCurso的watches属性
     (set! (.-watches this) (check-watches w (assoc w key f)))
     (set! (.-watchesArr this) nil)))
 
@@ -94,13 +94,13 @@
             ;; Copy watches to array for speed
             (->> (.-watches this)
                  (reduce-kv #(doto %1 (.push %2) (.push %3)) #js[])
-                 (set! (.-watchesArr this)))
+                 (set! (.-watchesArr this))) ;;从watches快速构建
             w)
         len (alength a)]
     (loop [i 0]
       (when (< i len)
-        (let [k (aget a i)
-              f (aget a (inc i))]
+        (let [k (aget a i) ;;对应的Reaction
+              f (aget a (inc i))] ;;对应的回调函数
           (f k this old new))
         (recur (+ 2 i))))))
 
@@ -113,11 +113,11 @@
 ;;; Queueing
 
 (defonce ^:private rea-queue nil)
-
+;;对Reaction进行队列存储
 (defn- rea-enqueue [r]
   (when (nil? rea-queue)
     (set! rea-queue (array))
-    (batch/schedule))
+    (batch/schedule)) ;;首次执行的时候，将进行初始化
   (.push rea-queue r))
 
 ;;; Atom
@@ -141,9 +141,9 @@
     (when-not (nil? validator)
       (assert (validator new-value) "Validator rejected reference state"))
     (let [old-value state]
-      (set! state new-value)
-      (when-not (nil? watches)
-        (notify-w a old-value new-value))
+      (set! state new-value) ;;将state更新为新值
+      (when-not (nil? watches);;waches不空的时候
+        (notify-w a old-value new-value));;进行变更通知
       new-value))
 
   ISwap
@@ -395,28 +395,29 @@
                   dirty?)
       (if (nil? auto-run)
         (do
-          (set! dirty? true)
-          (rea-enqueue this))
+          (set! dirty? true) ;;reaction发生变动了
+          (rea-enqueue this)) ;;重新入队
         (if (true? auto-run)
-          (._run this false)
+          (._run this false) ;;如果需要自动运行，就立刻执行
           (auto-run this)))))
 
   (_update-watching [this derefed]
-    (let [new (set derefed)
-          old (set watching)]
-      (set! watching derefed)
+    (let [new (set derefed) ;;新的观察者
+          old (set watching)];;原有的观察者
+      (set! watching derefed);; 更新观察着数据
       (doseq [w (s/difference new old)]
-        (-add-watch w this handle-reaction-change))
+        ;; this是Reaction,w是RAtom或者RCurse
+        (-add-watch w this handle-reaction-change)) ;;添加新增观察者
       (doseq [w (s/difference old new)]
-        (-remove-watch w this))))
+        (-remove-watch w this)))) ;;删除已经移除观察者
 
   (_queued-run [this]
-    (when (and dirty? (some? watching))
+    (when (and dirty? (some? watching)) ;;有变更，并且有观察者
       (._run this true)))
 
   (_try-capture [this f]
     (try
-      (set! caught nil)
+      (set! caught nil) ;;清空异常
       (deref-capture f this)
       (catch :default e
         (set! state e)
@@ -424,16 +425,16 @@
         (set! dirty? false))))
 
   (_run [this check]
-    (let [oldstate state
+    (let [oldstate state ;;保存原有状态
           res (if check
                 (._try-capture this f)
                 (deref-capture f this))]
-      (when-not nocache?
-        (set! state res)
+      (when-not nocache? ;;当需要缓存时
+        (set! state res) ;;将当前状态更新为state
         ;; Use = to determine equality from reactions, since
         ;; they are likely to produce new data structures.
         (when-not (or (nil? watches)
-                      (= oldstate res))
+                      (= oldstate res)) ;;数据变更了，并且观察者
           (notify-w this oldstate res)))
       res))
 
@@ -455,19 +456,19 @@
   IDeref
   (-deref [this]
     (when-some [e caught]
-      (throw e))
+      (throw e));;出现了异常
     (let [non-reactive (nil? *ratom-context*)]
       (when non-reactive
         (flush!))
-      (if (and non-reactive (nil? auto-run))
-        (when dirty?
-          (let [oldstate state]
-            (set! state (f))
+      (if (and non-reactive (nil? auto-run)) ;;当前没有Reactive并且不会自动执行
+        (when dirty? ;;有变更了
+          (let [oldstate state] ;;保存历史状态
+            (set! state (f));;更新当前状态
             (when-not (or (nil? watches) (= oldstate state))
-              (notify-w this oldstate state))))
+              (notify-w this oldstate state)))) ;;通知所有的观察者，进行状态变更
         (do
-          (notify-deref-watcher! this)
-          (when dirty?
+          (notify-deref-watcher! this) ;;将自身添加到上层Reaction
+          (when dirty? ;;如果是脏数据，立刻执行一次
             (._run this false)))))
     state)
 
@@ -505,13 +506,13 @@
 (defn flush! []
   (loop []
     (let [q rea-queue]
-      (when-not (nil? q)
-        (set! rea-queue nil)
+      (when-not (nil? q) ;; 队列空的时候，将不会去执行
+        (set! rea-queue nil) ;; 清空reaction的队列
         (dotimes [i (alength q)]
           (let [^Reaction r (aget q i)]
             (._queued-run r)))
         (recur)))))
-
+;;将ratom的刷新函数设置为flush!
 (set! batch/ratom-flush flush!)
 
 (defn make-reaction [f & {:keys [auto-run on-set on-dispose]}]
@@ -564,7 +565,7 @@
       (when (and changed (some? *ratom-context*))
         (warn "derefing stale wrap: "
               (pr-str this))))
-    state)
+    state) ;;返回当前的状态
 
   IReset
   (-reset! [this newval]
