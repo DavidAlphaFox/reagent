@@ -49,7 +49,7 @@
        (some? (some-> c (.-prototype) (.-reagentRender)))))
 
 (defn ^boolean react-class? [c]
-  (and (fn? c)
+  (and (fn? c) ;;是函数，并且有render函数
        (some? (some-> c (.-prototype) (.-render)))))
 
 (defn ^boolean reagent-component? [^clj c]
@@ -64,8 +64,8 @@
       (set! (.-cljsState this) (ratom/atom nil)))))
 
 ;;; Rendering
-
-(defn wrap-render
+;;包装渲染
+(defn wrap-render 
   "Calls the render function of the component `c`.  If result `res` evaluates to a:
      1) Vector (form-1 component) - Treats the vector as hiccup and returns
         a react element with a render function based on that hiccup
@@ -73,7 +73,7 @@
         and calls wrap-render again (`recur`), until the render result doesn't evaluate to a function.
      3) Anything else - Returns the result of evaluating `c`"
   [^clj c compiler]
-  (let [f (.-reagentRender c)
+  (let [f (.-reagentRender c) ;;渲染函数存在了
         _ (assert-callable f)
         ;; cljsLegacyRender tells if this calls was defined
         ;; using :render instead of :reagent-render
@@ -96,7 +96,7 @@
                              (p/as-element compiler (apply vector res args)))
                            res)]
                    (set! (.-reagentRender c) f)
-                   (recur c compiler))
+                   (recur c compiler));;递归调用
       :else res)))
 
 (defn component-name [c]
@@ -113,7 +113,7 @@
     ""))
 
 (defn do-render [c compiler]
-  (binding [*current-component* c]
+  (binding [*current-component* c];; 当前的组件
     (wrap-render c compiler)))
 
 
@@ -152,18 +152,18 @@
 
     :shouldComponentUpdate
     (fn shouldComponentUpdate [nextprops nextstate]
-      (or util/*always-update*
+      (or util/*always-update* ;;是否要一直更新
           (this-as c
                    ;; Don't care about nextstate here, we use forceUpdate
                    ;; when only when state has changed anyway.
-                   (let [old-argv (.. c -props -argv)
-                         new-argv (.-argv nextprops)
+                   (let [old-argv (.. c -props -argv) ;;原有参数数量
+                         new-argv (.-argv nextprops) ;; 全新props的参数数量
                          noargv (or (nil? old-argv) (nil? new-argv))]
                      (cond
                        (nil? f) (or noargv (try (not= old-argv new-argv)
                                                 (catch :default e
                                                   (warn "Exception thrown while comparing argv's in shouldComponentUpdate: " old-argv " " new-argv " " e)
-                                                  false)))
+                                                  false))) ;;不更新
                        noargv (.call f c c (get-argv c) (props-argv c nextprops))
                        :else  (.call f c c old-argv new-argv))))))
 
@@ -198,8 +198,8 @@
     :componentWillUnmount
     (fn componentWillUnmount []
       (this-as c
-               (some-> (gobj/get c "cljsRatom") ratom/dispose!)
-               (batch/mark-rendered c)
+               (some-> (gobj/get c "cljsRatom") ratom/dispose!) ;;释放对应的atom
+               (batch/mark-rendered c) ;;标记已经更新
                (when-not (nil? f)
                  (.call f c c))))
 
@@ -210,7 +210,7 @@
     nil))
 
 (defn get-wrapper [key f]
-  (let [wrap (custom-wrapper key f)]
+  (let [wrap (custom-wrapper key f)];;得到对应的wrap
     (when (and wrap f)
       (assert-callable f))
     (or wrap f)))
@@ -218,7 +218,7 @@
 ;; Though the value is nil here, the wrapper function will be
 ;; added to class to manage Reagent ratom lifecycle.
 (def obligatory {:shouldComponentUpdate nil
-                 :componentWillUnmount nil})
+                 :componentWillUnmount nil});;必要的函数
 
 (def dash-to-method-name (util/memoize-1 util/dash-to-method-name))
 
@@ -232,30 +232,30 @@
 
 (defn wrap-funs [fmap compiler]
   (when (dev?)
-    (let [renders (select-keys fmap [:render :reagentRender])
-          render-fun (-> renders vals first)]
+    (let [renders (select-keys fmap [:render :reagentRender]);;选取render函数
+          render-fun (-> renders vals first)];;先选择 :render对应的函数
       (assert (not (:componentFunction fmap)) ":component-function is no longer supported, use :reagent-render instead.")
       (assert (pos? (count renders)) "Missing reagent-render")
       (assert (== 1 (count renders)) "Too many render functions supplied")
       (assert-callable render-fun)))
-  (let [render-fun (or (:reagentRender fmap)
+  (let [render-fun (or (:reagentRender fmap);;先选择reagentRender
                        (:render fmap))
-        legacy-render (nil? (:reagentRender fmap))
+        legacy-render (nil? (:reagentRender fmap));;没有reagentRender，是属于历史render
         name (or (:displayName fmap)
                  (util/fun-name render-fun)
-                 (str (gensym "reagent")))
+                 (str (gensym "reagent"))) ;;得到名字
         fmap (reduce-kv (fn [m k v]
                           (assoc m k (get-wrapper k v)))
                         {} fmap)]
     (assoc fmap
            :displayName name
-           :cljsLegacyRender legacy-render
+           :cljsLegacyRender legacy-render ;;没有reagentRender时候为true
            :reagentRender render-fun
            :render (fn render []
                      (this-as c (if util/*non-reactive*
-                                  (do-render c compiler)
+                                  (do-render c compiler) ;;此处应在服务端渲染时发生
                                   (let [^clj rat (gobj/get c "cljsRatom")]
-                                    (batch/mark-rendered c)
+                                    (batch/mark-rendered c) ;;标记已经渲染
                                     (if (nil? rat)
                                       (ratom/run-in-reaction #(do-render c compiler) c "cljsRatom"
                                                              batch/queue-render rat-opts)
@@ -269,7 +269,7 @@
 
 (defn cljsify [body compiler]
   (-> body
-      camelify-map-keys
+      camelify-map-keys ;;函数名全都重新更新下
       add-obligatory
       (wrap-funs compiler)))
 
@@ -290,7 +290,7 @@
 
   React built-in static methods or properties are automatically defined as statics."
   [body compiler]
-  {:pre [(map? body)]}
+  {:pre [(map? body)]};;确认是map
   (let [body (cljsify body compiler)
         methods (map-to-js (apply dissoc body :displayName :getInitialState :constructor
                                   :render :reagentRender
@@ -301,18 +301,18 @@
         construct (:constructor body)
         cmp (fn [props context updater]
               (this-as ^clj this
-                (.call react/Component this props context updater)
-                (when construct
-                  (construct this props))
-                (when get-initial-state
-                  (set! (.-state this) (get-initial-state this)))
-                (set! (.-cljsMountOrder this) (batch/next-mount-count))
-                this))]
+                       (.call react/Component this props context updater)
+                       (when construct
+                         (construct this props))
+                       (when get-initial-state
+                         (set! (.-state this) (get-initial-state this)))
+                       (set! (.-cljsMountOrder this) (batch/next-mount-count));;设置挂载深度
+                       this))]
 
     (gobj/extend (.-prototype cmp) (.-prototype react/Component) methods)
 
     ;; These names SHOULD be mangled by Closure so we can't use goog/extend
-
+    ;; 给原型设置相应的函数
     (when (:render body)
       (set! (.-render ^js (.-prototype cmp)) (:render body)))
 
@@ -359,7 +359,7 @@
                                                  f)
                (comp-name))
   (if (reagent-class? f)
-    (cache-react-class compiler f f)
+    (cache-react-class compiler f f);;Reagent的class
     (let [spec (meta f)
           withrender (assoc spec :reagent-render f)
           res (create-class withrender compiler)]
@@ -371,8 +371,8 @@
     (fn-to-class compiler tag)))
 
 (defn reactify-component [comp compiler]
-  (if (react-class? comp)
-    comp
+  (if (react-class? comp) 
+    comp ;;如果是React的class就直接返回
     (as-class comp compiler)))
 
 (defn functional-wrap-render

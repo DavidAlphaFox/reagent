@@ -481,7 +481,7 @@
       (set! auto-run nil)
       (set! dirty? true)
       (doseq [w (set wg)]
-        (-remove-watch w this))
+        (-remove-watch w this));;释放所有watcher
       (when (some? (.-on-dispose this))
         (.on-dispose this s))
       (when-some [a (.-on-dispose-arr this)]

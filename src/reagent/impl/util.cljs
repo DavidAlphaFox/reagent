@@ -38,7 +38,7 @@
       (if (dont-camel-case start)
         name-str
         (apply str start (map capitalize parts))))))
-
+;; handle-ele-click => handleEleClick
 (defn dash-to-method-name [dashed]
   (if (string? dashed)
     dashed
